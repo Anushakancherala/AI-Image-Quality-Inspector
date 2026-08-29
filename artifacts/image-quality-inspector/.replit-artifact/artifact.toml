@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "AI Image Quality Inspector"
+description = "An offline image quality and defect inspection dashboard that uses engineered computer-vision features with a reproducible Random Forest model, stores analyses locally, and explains each result."
+version = "1.0.0"
+id = "artifacts/image-quality-inspector"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24770
+
+[services.development]
+run = "pnpm --filter @workspace/image-quality-inspector run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/image-quality-inspector", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/image-quality-inspector/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24770"
+BASE_PATH = "/"

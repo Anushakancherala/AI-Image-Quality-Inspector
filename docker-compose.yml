@@ -1,0 +1,25 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: artifacts/api-server/Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      SQLITE_PATH: /app/data/analyses.db
+    volumes:
+      - inspector-data:/app/data
+  frontend:
+    build:
+      context: .
+      dockerfile: artifacts/image-quality-inspector/Dockerfile
+      args:
+        BASE_PATH: /
+        PORT: 4173
+    ports:
+      - "4173:80"
+    depends_on:
+      - api
+
+volumes:
+  inspector-data:

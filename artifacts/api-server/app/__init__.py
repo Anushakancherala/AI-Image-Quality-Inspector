@@ -1,0 +1,1 @@
+"""Offline image quality inspection service."""

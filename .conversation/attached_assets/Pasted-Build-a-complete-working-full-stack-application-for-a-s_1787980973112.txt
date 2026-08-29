@@ -1,0 +1,288 @@
+Build a complete working full-stack application for a software internship technical assessment titled:
+
+“AI-Powered Image Quality & Defect Detection”
+
+IMPORTANT CONSTRAINTS:
+
+* This is an offline/local AI application.
+* Do NOT use OpenAI, Gemini, Claude, Google Vision, AWS Rekognition, or any external AI/vision API.
+* No API keys should be required.
+* The AI decision component must use a real machine-learning model, not only OpenCV threshold rules.
+* Prioritize a working, reproducible application over unnecessary complexity.
+
+TECH STACK:
+
+* Frontend: React + Vite
+* Backend: Python + FastAPI
+* Computer Vision: OpenCV + Pillow + NumPy
+* Machine Learning: scikit-learn
+* Model: RandomForestClassifier using engineered image-quality features
+* Database: SQLite
+* Model persistence: joblib
+* Containerization: Docker + Docker Compose
+
+APPLICATION GOAL:
+A user uploads an image. The application analyzes its visual quality and returns:
+
+* quality score from 0–100
+* quality label: ACCEPTABLE, DEGRADED, or POTENTIALLY_DEFECTIVE
+* detected issues
+* severity for each issue
+* confidence for each issue
+* image-quality statistics
+* explainability information
+
+REQUIRED DETECTION CAPABILITIES:
+
+1. Blur / insufficient sharpness
+2. Underexposure
+3. Overexposure
+4. Image noise
+5. Image corruption or severe degradation
+6. Potential visual defect
+
+AI/ML REQUIREMENT:
+Implement a genuine ML pipeline.
+
+Use engineered image features such as:
+
+* Laplacian variance / sharpness
+* mean brightness
+* brightness standard deviation / contrast
+* noise estimate
+* saturation statistics
+* edge density
+* texture-related statistics
+* histogram-based features where useful
+
+Create a training pipeline that can generate controlled degradations from clean images:
+
+* blur
+* underexposure
+* overexposure
+* Gaussian noise
+* JPEG/degradation corruption
+
+Train a RandomForestClassifier on the extracted features.
+
+IMPORTANT:
+The application must be able to work even if a pre-trained model file does not initially exist. Create a practical training script that generates a small reproducible synthetic training dataset from sample/clean images and trains the model.
+
+Use a fixed random seed for reproducibility.
+
+Evaluate the trained model using:
+
+* accuracy
+* precision
+* recall
+* F1-score
+* confusion matrix
+
+Save evaluation results in a clear format that can be documented in README.
+
+Do NOT fabricate evaluation metrics. If the model has not actually been trained yet, provide a training command/script that generates the real metrics.
+
+BACKEND:
+Create FastAPI REST endpoints:
+
+GET /health
+
+* return HTTP 200 and service/model status
+
+POST /api/analyze
+
+* accept an uploaded image using multipart/form-data
+* validate file type
+* validate that the image can actually be decoded
+* handle invalid/corrupt images gracefully
+* extract image features
+* run ML inference
+* calculate quality score and label
+* determine issue severity/confidence
+* save analysis result to SQLite
+* return structured JSON
+
+GET /api/history
+
+* return previous analyses
+
+GET /api/history/{id}
+
+* return one analysis
+
+Use appropriate HTTP status codes and useful error messages.
+
+EXPECTED JSON STRUCTURE:
+
+{
+"id": "...",
+"filename": "...",
+"timestamp": "...",
+"quality_score": 82,
+"quality_label": "ACCEPTABLE",
+"issues": [
+{
+"type": "noise",
+"severity": "low",
+"confidence": 0.71
+}
+],
+"metrics": {
+"sharpness": 120.4,
+"brightness": 128.5,
+"contrast": 45.2,
+"noise": 0.08,
+"saturation": 0.42,
+"edge_density": 0.17
+},
+"explainability": {
+"top_factors": []
+}
+}
+
+DATABASE:
+Use SQLite.
+
+Store:
+
+* id
+* filename
+* timestamp
+* quality score
+* quality label
+* issues
+* image metrics
+* model version
+
+FRONTEND:
+Build a clean responsive React dashboard.
+
+Required UI:
+
+1. Image upload area
+2. Image preview
+3. Analyze button
+4. Loading state
+5. Error state
+6. Quality score display
+7. Quality label
+8. Detected issue cards
+9. Severity
+10. Confidence
+11. Image statistics
+12. Explainability / top contributing features
+13. Analysis history table/list
+14. Ability to view previous analysis details
+
+Keep the design professional but simple. Functionality is more important than animations.
+
+EXPLAINABILITY:
+Because Random Forest is being used, expose feature importance from the trained model and combine it with the actual image statistics to explain the result.
+
+Show something like:
+
+* Sharpness: 32.4
+* Brightness: 45.2
+* Contrast: 18.7
+* Noise: 0.21
+
+and top contributing features.
+
+PROJECT STRUCTURE:
+
+/
+├── backend/
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── api/
+│   │   ├── cv/
+│   │   ├── ml/
+│   │   ├── database/
+│   │   └── schemas/
+│   ├── tests/
+│   ├── requirements.txt
+│   └── Dockerfile
+├── frontend/
+│   ├── src/
+│   ├── package.json
+│   ├── vite.config.js
+│   └── Dockerfile
+├── ml/
+│   ├── generate_dataset.py
+│   ├── train.py
+│   ├── evaluate.py
+│   └── feature_extraction.py
+├── models/
+├── samples/
+├── evaluation/
+├── docker-compose.yml
+├── .env.example
+├── .gitignore
+└── README.md
+
+README MUST INCLUDE:
+
+* project overview
+* architecture
+* features
+* technology stack
+* how the CV features work
+* why Random Forest was selected
+* dataset/training methodology
+* how synthetic degradations were generated
+* training instructions
+* evaluation methodology
+* actual evaluation results after running training
+* API endpoints
+* example API request/response
+* database information
+* local setup instructions
+* Docker/Docker Compose instructions
+* model loading/inference explanation
+* limitations and failure cases
+* sample image descriptions
+
+SAMPLE IMAGES:
+Create or include a small set of sample images demonstrating:
+
+* clean image
+* blurry image
+* underexposed image
+* overexposed image
+* noisy image
+* severely degraded/corrupted image
+
+Do not include copyrighted datasets unnecessarily. Use generated synthetic samples where practical.
+
+TESTING:
+Add basic backend tests for:
+
+* health endpoint
+* invalid file upload
+* valid image analysis
+* history endpoint
+
+DEPLOYMENT:
+Docker Compose should run frontend and backend together.
+
+Frontend and backend must communicate correctly through the configured API URL.
+
+Use environment variables for configurable settings.
+
+IMPORTANT IMPLEMENTATION RULE:
+Do not merely create a mock UI with fake analysis results. The upload must reach the FastAPI backend, the backend must actually extract image features and run the trained ML model, and the result must be persisted in SQLite.
+
+Before finishing:
+
+1. Install dependencies.
+2. Train the model.
+3. Run the backend.
+4. Run the frontend.
+5. Test the API.
+6. Test at least several sample images.
+7. Fix errors.
+8. Ensure Docker configuration is valid.
+9. Ensure README commands match the actual project.
+10. Do not claim something works unless it has been tested.
+
+Start by creating the complete project structure and implementing the backend, ML pipeline, database, frontend, and Docker configuration.

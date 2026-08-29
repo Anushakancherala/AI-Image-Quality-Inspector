@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: analysis
+    description: Image quality analysis operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,101 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /health:
+    get:
+      operationId: getHealth
+      tags: [health]
+      summary: Service health
+      responses:
+        "200":
+          description: Service health
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /analyze:
+    post:
+      operationId: analyzeImage
+      tags: [analysis]
+      summary: Analyze an uploaded image
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/ImageUpload"
+      responses:
+        "200":
+          description: Completed image quality analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Analysis"
+        "400":
+          description: Invalid or undecodable image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /history:
+    get:
+      operationId: listAnalyses
+      tags: [analysis]
+      summary: List previous image analyses
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: number
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: Previous analyses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Analysis"
+  /history/{id}:
+    get:
+      operationId: getAnalysis
+      tags: [analysis]
+      summary: Get one previous analysis
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Analysis detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Analysis"
+        "404":
+          description: Analysis not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /summary:
+    get:
+      operationId: getAnalysisSummary
+      tags: [analysis]
+      summary: Get dashboard analysis summary
+      responses:
+        "200":
+          description: Summary of local analysis history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisSummary"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +130,145 @@ components:
           type: string
       required:
         - status
+    ImageUpload:
+      type: object
+      required:
+        - file
+      properties:
+        file:
+          type: string
+          format: binary
+    Issue:
+      type: object
+      required:
+        - type
+        - severity
+        - confidence
+      properties:
+        type:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        description:
+          type: string
+    Metrics:
+      type: object
+      required:
+        - sharpness
+        - brightness
+        - contrast
+        - noise
+        - saturation
+        - edge_density
+        - width
+        - height
+      properties:
+        sharpness:
+          type: number
+        brightness:
+          type: number
+        contrast:
+          type: number
+        noise:
+          type: number
+        saturation:
+          type: number
+        edge_density:
+          type: number
+        width:
+          type: number
+        height:
+          type: number
+    Explainability:
+      type: object
+      required:
+        - top_factors
+        - model_version
+      properties:
+        top_factors:
+          type: array
+          items:
+            type: object
+            required: [feature, importance, value, interpretation]
+            properties:
+              feature:
+                type: string
+              importance:
+                type: number
+              value:
+                type: number
+              interpretation:
+                type: string
+        model_version:
+          type: string
+    Analysis:
+      type: object
+      required:
+        - id
+        - filename
+        - timestamp
+        - quality_score
+        - quality_label
+        - issues
+        - metrics
+        - explainability
+      properties:
+        id:
+          type: string
+        filename:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        quality_score:
+          type: number
+          minimum: 0
+          maximum: 100
+        quality_label:
+          type: string
+          enum: [ACCEPTABLE, DEGRADED, POTENTIALLY_DEFECTIVE]
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/Issue"
+        metrics:
+          $ref: "#/components/schemas/Metrics"
+        explainability:
+          $ref: "#/components/schemas/Explainability"
+    AnalysisSummary:
+      type: object
+      required:
+        - total
+        - acceptable
+        - degraded
+        - potentially_defective
+        - average_score
+        - model_status
+      properties:
+        total:
+          type: number
+        acceptable:
+          type: number
+        degraded:
+          type: number
+        potentially_defective:
+          type: number
+        average_score:
+          type: number
+        model_status:
+          type: string
+        model_version:
+          type: string
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
 
