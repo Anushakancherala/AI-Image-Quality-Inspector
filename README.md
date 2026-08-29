@@ -15,8 +15,6 @@ The application allows users to upload an image and receive:
 
 No external AI or computer-vision APIs are required, and no API key is needed.
 
----
-
 ## Architecture
 
 ```text
@@ -83,7 +81,7 @@ RandomForestClassifier
 joblib
 Database
 SQLite
-Development & Packaging
+Development and Packaging
 pnpm workspace
 Docker
 Docker Compose
@@ -409,7 +407,7 @@ Feature importance information is used for explainability.
 The analysis is persisted in SQLite.
 Quality Labels
 
-The system returns one of three primary quality labels:
+The system returns one of three primary quality labels.
 
 ACCEPTABLE
 
