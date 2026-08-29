@@ -16,7 +16,7 @@ try:
 except ImportError:
     from features import FEATURE_NAMES, extract_features, vectorize
 
-MODEL_VERSION = "rf-quality-v1"
+MODEL_VERSION = "rf-quality-v2"
 ROOT = Path(__file__).resolve().parents[3]
 MODEL_PATH = ROOT / "models" / "quality_model.joblib"
 EVALUATION_PATH = ROOT / "evaluation" / "metrics.json"
