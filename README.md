@@ -1,166 +1,277 @@
 # AI Image Quality Inspector
 
-An offline, local-first image inspection tool for software internship technical
-assessments and QA workflows. Upload an image to receive a 0–100 quality score,
-an `ACCEPTABLE`, `DEGRADED`, or `POTENTIALLY_DEFECTIVE` label, issue severity and
-confidence, measurable image statistics, and an explanation based on a
-persisted Random Forest model.
+An offline, local-first image inspection tool designed for software internship
+technical assessments and QA workflows.
 
-No external AI or vision APIs are used and no API key is required.
+The application allows users to upload an image and receive:
+
+- A quality score from 0–100
+- An `ACCEPTABLE`, `DEGRADED`, or `POTENTIALLY_DEFECTIVE` label
+- Detected image-quality issues
+- Issue severity and model confidence
+- Measurable image statistics
+- Random Forest feature-based explanations
+- Persistent analysis history
+
+No external AI or computer-vision APIs are required, and no API key is needed.
+
+---
 
 ## Architecture
 
 ```text
-React + Vite dashboard
-        │ multipart upload / JSON queries
-        ▼
-FastAPI service (Python)
-        ├── OpenCV / NumPy feature extraction
-        ├── scikit-learn RandomForest inference
-        └── SQLite analysis history
+React + Vite Dashboard
         │
-        ├── models/quality_model.joblib
-        ├── evaluation/metrics.json
-        └── samples/*.png
-```
+        │ Multipart Upload / JSON Requests
+        ▼
+FastAPI Service
+        │
+        ├── OpenCV / NumPy Feature Extraction
+        ├── Scikit-learn Random Forest Inference
+        └── SQLite Analysis History
+                │
+                ├── models/quality_model.joblib
+                ├── evaluation/metrics.json
+                └── samples/*.png
 
-The frontend is the root web artifact. The existing API service runs the
-FastAPI app on the `/api` path so the same routing works in local preview and
-Docker Compose.
+The frontend is the main web artifact.
 
-## Features
+The backend exposes the FastAPI service under the /api path so that the same
+API routing can be used in local preview and Docker Compose environments.
 
-- Upload validation for PNG, JPEG, WebP, BMP, and TIFF files.
-- Decode validation and useful errors for empty, corrupt, unsupported, or
-  oversized files.
-- Detection of blur, underexposure, overexposure, image noise, severe
-  degradation, and unusual visual patterns that may be defects.
-- Quality score and label with issue severity and model confidence.
-- Explainability view showing the Random Forest's most important features and
-  the measured value for the analyzed image.
-- SQLite-backed history list and analysis detail routes.
-- Reproducible synthetic training data and generated sample images.
-- Health endpoint reporting service and model readiness.
+Features
+Upload validation for PNG, JPEG, WebP, BMP, and TIFF images
+Validation for empty, corrupt, unsupported, and oversized files
+Image decoding validation
+Blur detection
+Underexposure detection
+Overexposure detection
+Image-noise detection
+Severe degradation detection
+Unusual visual-pattern detection
+Quality score from 0–100
+Quality classification
+Issue severity and confidence
+Random Forest explainability
+Feature importance visualization
+Measurable image statistics
+SQLite-backed analysis history
+Analysis detail routes
+Dashboard summary statistics
+Health and model-readiness endpoint
+Reproducible synthetic training data
+Generated sample images
+Persisted machine-learning model
+Docker Compose support
+Technology Stack
+Frontend
+React
+Vite
+TypeScript
+Tailwind CSS
+Backend
+Python
+FastAPI
+Uvicorn
+Computer Vision
+OpenCV
+Pillow
+NumPy
+Machine Learning
+scikit-learn
+RandomForestClassifier
+joblib
+Database
+SQLite
+Development & Packaging
+pnpm workspace
+Docker
+Docker Compose
+How the Computer-Vision Features Work
 
-## Technology stack
+Each uploaded image is decoded into a BGR image and converted into grayscale
+and HSV representations.
 
-- Frontend: React, Vite, TypeScript, Tailwind CSS
-- Backend: Python, FastAPI, Uvicorn
-- Computer vision: OpenCV, Pillow, NumPy
-- Machine learning: scikit-learn `RandomForestClassifier`
-- Model persistence: joblib
-- Database: SQLite
-- Packaging: pnpm workspace and Docker Compose
+The machine-learning model uses deterministic engineered features extracted
+from the image.
 
-## How the CV features work
+1. Sharpness
 
-Every image is decoded to a BGR array and converted to grayscale and HSV
-representations. The model receives these deterministic engineered features:
+Sharpness is measured using the variance of the grayscale Laplacian.
 
-- **Sharpness** — variance of the grayscale Laplacian; high-frequency detail
-  drops when an image is blurred.
-- **Brightness** — mean grayscale intensity; helps separate dark and clipped
-  captures.
-- **Contrast** — grayscale standard deviation; low contrast often accompanies
-  flat or degraded images.
-- **Noise** — standard deviation of the residual after a small Gaussian blur,
-  normalized to a 0–1 scale.
-- **Saturation** — mean HSV saturation.
-- **Edge density** — proportion of pixels detected by Canny edge detection.
-- **Texture entropy** — normalized entropy of a 32-bin grayscale histogram.
-- **Histogram bins** — eight normalized grayscale distribution features.
+Higher-frequency image details generally decrease when an image is blurred.
 
-The score combines the model's predicted class probability with the measured
-quality signals. The label decision is model-backed: clean predictions can be
-acceptable, common capture problems are degraded, and corruption or defect
-predictions are potentially defective.
+2. Brightness
 
-## Why Random Forest
+Brightness is calculated from the mean grayscale intensity.
 
-Random Forest works well for this small, tabular feature vector because it can
-learn nonlinear interactions between sharpness, brightness, contrast, noise,
-edges, and histogram shape without requiring a large neural-network dataset.
-It is fast to train locally, reproducible with a fixed seed, robust to features
-with different scales, and exposes `feature_importances_` for the explanation
-shown in the dashboard.
+This helps identify very dark or excessively bright images.
 
-## Dataset and training methodology
+3. Contrast
 
-The checked-in `samples/` directory contains generated, non-copyrighted sample
-images. `ml/generate_dataset.py` creates a clean inspection card plus:
+Contrast is represented by the standard deviation of grayscale intensity.
 
-- `blur.png` — Gaussian-blurred clean image
-- `underexposure.png` — darkened image
-- `overexposure.png` — brightened and clipped image
-- `noise.png` — Gaussian pixel noise
-- `corruption.png` — low-quality JPEG recompression
-- `defect.png` — synthetic occlusion and scratch
+Low contrast can indicate flat or degraded images.
 
-The training pipeline starts from those clean images and creates 24 controlled
-variants per class using a fixed seed of `42`. It extracts the same 15 features
-used at inference, stratifies the train/test split, trains a 120-tree Random
-Forest, and saves the model to `models/quality_model.joblib`. If the model is
-missing when the API starts, the service trains it automatically from the
-available samples.
+4. Noise
 
-## Actual evaluation results
+Noise is estimated from the residual after applying a small Gaussian blur.
 
-These results were produced by running the training pipeline in this project,
-not estimated:
+The resulting value is normalized to a 0–1 scale.
 
-| Metric | Result |
-| --- | ---: |
-| Accuracy | 0.8810 |
-| Weighted precision | 0.8829 |
-| Weighted recall | 0.8810 |
-| Weighted F1 | 0.8765 |
-| Training examples | 1,176 |
+5. Saturation
 
-The full labeled confusion matrix and feature list are stored in
-`evaluation/metrics.json` and can be regenerated at any time.
+Mean HSV saturation is used as an additional image-quality feature.
 
-## Training commands
+6. Edge Density
 
-From the repository root:
+Canny edge detection is used to calculate the proportion of pixels that belong
+to detected edges.
 
-```bash
+7. Texture Entropy
+
+A normalized entropy value is calculated from a 32-bin grayscale histogram.
+
+8. Histogram Features
+
+Eight normalized grayscale histogram features are included in the feature
+vector.
+
+Together, these features provide a compact representation of image quality
+without requiring a large neural-network model.
+
+Why Random Forest?
+
+Random Forest is well suited for this project because the model operates on a
+small tabular feature vector rather than raw image tensors.
+
+It can learn nonlinear relationships between:
+
+Sharpness
+Brightness
+Contrast
+Noise
+Saturation
+Edge density
+Texture
+Histogram distribution
+
+Additional advantages include:
+
+Fast local training
+Low inference overhead
+Reproducible training
+Robustness to differently scaled features
+Good performance on small structured datasets
+Built-in feature_importances_ support for explainability
+
+This makes Random Forest a practical choice for an offline image-quality
+inspection system.
+
+Dataset and Training Methodology
+
+The project includes generated, non-copyrighted sample images in the
+samples/ directory.
+
+The dataset-generation pipeline creates a clean inspection image along with
+controlled quality-degradation variants.
+
+Generated Samples
+blur.png — Gaussian-blurred image
+underexposure.png — darkened image
+overexposure.png — brightened and clipped image
+noise.png — Gaussian pixel noise
+corruption.png — low-quality JPEG recompression
+defect.png — synthetic occlusion and scratch
+
+The training pipeline creates controlled variants using a fixed random seed of
+42.
+
+The same feature-extraction logic is used during training and inference.
+
+The training pipeline:
+
+Generates the dataset
+Extracts image features
+Creates labeled examples
+Performs a stratified train/test split
+Trains a 120-tree Random Forest
+Evaluates the model
+Saves the trained model to:
+models/quality_model.joblib
+
+If the persisted model is missing when the API starts, the service can train
+the model from the available samples.
+
+Evaluation Results
+
+The following results were produced by running the project's training and
+evaluation pipeline.
+
+Metric	Result
+Accuracy	0.8810
+Weighted Precision	0.8829
+Weighted Recall	0.8810
+Weighted F1	0.8765
+Training Examples	1,176
+
+The complete evaluation information, including the confusion matrix and feature
+information, is stored in:
+
+evaluation/metrics.json
+Training Commands
+
+Run the following commands from the repository root:
+
 python ml/generate_dataset.py
 python ml/train.py
 python ml/evaluate.py
-```
 
-The generated model and evaluation file are reusable by the API. To force a
-fresh model, remove `models/quality_model.joblib` and
-`evaluation/metrics.json`, then run the commands above.
+The generated model is saved as:
 
-## API
+models/quality_model.joblib
 
-The service is mounted under `/api` in the workspace preview.
+The evaluation results are saved as:
 
-### `GET /api/healthz` or `GET /api/health`
+evaluation/metrics.json
 
-Returns service and model status:
+To force a fresh model and evaluation, remove the existing model and metrics
+files and run the training commands again.
 
-```json
+API
+
+The FastAPI service is mounted under the /api path.
+
+Health Check
+GET /api/healthz
+
+or
+
+GET /api/health
+
+Returns the service and machine-learning model status.
+
+Example:
+
 {
   "status": "ok",
   "model_status": "ready",
-  "model_version": "rf-quality-v1"
+  "model_version": "rf-quality-v2"
 }
-```
+Analyze Image
+POST /api/analyze
 
-### `POST /api/analyze`
+Uploads an image for quality analysis.
 
-Send an image as multipart form data under the `file` field:
+The image must be sent as multipart form data using the file field.
 
-```bash
+Example:
+
 curl -X POST http://localhost:80/api/analyze \
   -F "file=@samples/noise.png"
-```
 
-Example response shape:
+Example response:
 
-```json
 {
   "id": "9c9c2be1-2bd2-4fdd-bf44-cf9e4f5cb564",
   "filename": "noise.png",
@@ -187,89 +298,229 @@ Example response shape:
   },
   "explainability": {
     "top_factors": [],
-    "model_version": "rf-quality-v1"
+    "model_version": "rf-quality-v2"
   }
 }
-```
+Analysis History
+GET /api/history?limit=20
 
-### `GET /api/history?limit=20`
+Returns the most recent image analyses.
 
-Returns the most recent persisted analyses. `limit` is constrained to 1–100.
+The limit parameter is constrained to values between 1 and 100.
 
-### `GET /api/history/{id}`
+Analysis Details
+GET /api/history/{id}
 
-Returns one persisted analysis or HTTP 404 with an `error` message.
+Returns a specific persisted analysis.
 
-### `GET /api/summary`
+If the analysis does not exist, the service returns HTTP 404 with an error
+message.
 
-Returns total analyses, counts by quality label, average score, and model
-status for the dashboard overview.
+Dashboard Summary
+GET /api/summary
 
-## Database
+Returns dashboard-level statistics including:
 
-SQLite is stored at `data/analyses.db` by default, configurable with
-`SQLITE_PATH`. The `analyses` table stores the id, filename, timestamp, score,
-label, JSON-encoded issues and metrics, explainability data, and model version.
-Uploaded image bytes are analyzed in memory and are not stored.
+Total analyses
+Counts by quality label
+Average quality score
+Model status
+Database
 
-## Local setup
+SQLite is used to persist analysis history.
 
-The Replit environment provisions the Python runtime and dependencies. For a
-regular local Python environment, install the pinned runtime dependencies with:
+The default database location is:
 
-```bash
+data/analyses.db
+
+The database path can be changed using the SQLITE_PATH environment variable.
+
+The analyses table stores:
+
+Analysis ID
+Filename
+Timestamp
+Quality score
+Quality label
+Detected issues
+Image metrics
+Explainability information
+Model version
+
+Uploaded image bytes are processed in memory and are not stored in the
+database.
+
+Local Setup
+
+The Replit environment provides the required Python runtime and dependencies.
+
+For a regular local Python environment, install the Python dependencies with:
+
 python -m pip install -r requirements.txt
-```
 
-Then start the service and dashboard in separate terminals:
+The project contains separate frontend and backend services.
 
-```bash
+Start the API
 pnpm --filter @workspace/api-server run dev
+Start the Frontend
+
+In another terminal:
+
 pnpm --filter @workspace/image-quality-inspector run dev
-```
 
-In the managed preview, the API and frontend workflows are already configured.
-The first API start creates the SQLite database and trains the model only if a
-persisted model is not present.
+The exact local development setup may depend on the operating system and
+workspace environment.
 
-## Docker Compose
+The managed Replit preview has the frontend and API workflows configured.
 
-Run both services together:
+Docker Compose
 
-```bash
+The complete application can also be run using Docker Compose.
+
 docker compose up --build
-```
 
-The dashboard is available at `http://localhost:4173` and the API at
-`http://localhost:5000`. The `inspector-data` volume keeps the SQLite database
-between container restarts.
+The Docker Compose configuration runs the frontend and backend together.
 
-## Model loading and inference
+The dashboard is available at:
 
-At import time, FastAPI initializes the SQLite schema and loads the persisted
-joblib bundle. If no bundle exists, a reproducible training pass runs first.
-Each request is decoded with OpenCV, feature values are extracted, and the
-Random Forest returns a class and class probabilities. The response combines
-those probabilities, a quality score, the issue list, and feature-importance
-explanations before writing one history row.
+http://localhost:4173
 
-## Limitations and failure cases
+The API is available at:
 
-- This is an engineered-feature classifier, not a neural network trained on a
-  large production image corpus. Results are most trustworthy for capture
-  quality issues similar to the generated training examples.
-- The synthetic defect class indicates a review signal; it does not locate or
-  identify a real-world manufacturing defect.
-- Extremely unusual image formats, massive files, unsupported encodings, and
-  undecodable corruption are rejected with HTTP 400.
-- The current model is not a substitute for domain-specific inspection rules
-  or human review of borderline images.
+http://localhost:5000
 
-## Tests
+The inspector-data volume keeps SQLite data between container restarts.
 
-Basic API coverage includes health, invalid upload, valid image analysis, and
-history:
+Model Loading and Inference
 
-```bash
+When the FastAPI application starts:
+
+The SQLite database schema is initialized.
+The persisted Random Forest model is loaded.
+If the model is missing, the training pipeline can generate it.
+Uploaded images are decoded using OpenCV.
+The deterministic CV features are extracted.
+The Random Forest generates a prediction and class probabilities.
+Quality signals and model probabilities are combined into the final quality
+score.
+The system determines the quality label.
+Detected issues and confidence values are generated.
+Feature importance information is used for explainability.
+The analysis is persisted in SQLite.
+Quality Labels
+
+The system returns one of three primary quality labels:
+
+ACCEPTABLE
+
+The image satisfies the expected quality conditions.
+
+DEGRADED
+
+The image contains common quality problems such as blur, noise,
+underexposure, overexposure, or reduced image quality.
+
+POTENTIALLY_DEFECTIVE
+
+The image contains stronger degradation or patterns that require additional
+review.
+
+The labels are model-backed and should be interpreted as inspection signals
+rather than absolute ground truth.
+
+Limitations
+
+This project has several important limitations.
+
+The classifier uses engineered computer-vision features rather than a large
+production-scale image dataset.
+The model is trained using controlled synthetic examples.
+Results are most reliable for image-quality problems similar to the training
+examples.
+The synthetic defect class represents a review signal and does not identify
+or localize real-world manufacturing defects.
+Extremely unusual image formats, unsupported encodings, massive files, and
+corrupted images may be rejected.
+Borderline predictions may require human review.
+The model should not be considered a replacement for domain-specific
+inspection systems or human quality assurance.
+Tests
+
+The project includes API tests covering:
+
+Health endpoint
+Invalid uploads
+Valid image analysis
+Analysis history
+
+Run the tests with:
+
 pytest artifacts/api-server/tests -q
-```
+Project Structure
+AI-Image-Quality-Inspector/
+│
+├── artifacts/
+│   ├── api-server/
+│   │   ├── app/
+│   │   └── tests/
+│   │
+│   └── image-quality-inspector/
+│
+├── evaluation/
+│   └── metrics.json
+│
+├── lib/
+│
+├── ml/
+│   ├── generate_dataset.py
+│   ├── train.py
+│   └── evaluate.py
+│
+├── models/
+│   └── quality_model.joblib
+│
+├── samples/
+│   ├── blur.png
+│   ├── underexposure.png
+│   ├── overexposure.png
+│   ├── noise.png
+│   ├── corruption.png
+│   └── defect.png
+│
+├── scripts/
+│
+├── main.py
+├── run_api.py
+├── start_server.py
+├── test_api.py
+├── test_all_images.py
+│
+├── docker-compose.yml
+├── Dockerfile
+├── requirements.txt
+├── package.json
+├── pnpm-workspace.yaml
+└── README.md
+Project Highlights
+Offline-first architecture
+No external AI API dependency
+Deterministic computer-vision feature extraction
+Machine-learning-based image classification
+Persisted Random Forest model
+Explainable predictions
+REST API using FastAPI
+React-based dashboard
+SQLite analysis history
+Automated validation and testing
+Docker Compose support
+Reproducible model training and evaluation
+Conclusion
+
+AI Image Quality Inspector combines classical computer vision, machine
+learning, and a full-stack web interface to provide an offline image-quality
+inspection workflow.
+
+The system demonstrates an end-to-end pipeline covering image upload,
+validation, feature extraction, machine-learning inference, explainability,
+persistence, API integration, dashboard visualization, testing, and
+containerized deployment.
