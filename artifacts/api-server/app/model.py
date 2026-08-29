@@ -11,7 +11,10 @@ import numpy as np
 from PIL import Image, ImageDraw
 from sklearn.ensemble import RandomForestClassifier
 
-from .features import FEATURE_NAMES, extract_features, vectorize
+try:
+    from .features import FEATURE_NAMES, extract_features, vectorize
+except ImportError:
+    from features import FEATURE_NAMES, extract_features, vectorize
 
 MODEL_VERSION = "rf-quality-v1"
 ROOT = Path(__file__).resolve().parents[3]

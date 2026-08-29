@@ -9,8 +9,12 @@ from fastapi import FastAPI, File, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from .database import get_analysis, initialize, insert_analysis, list_analyses, summary
-from .model import MODEL_VERSION, analyse, ensure_model, load_bundle
+try:
+    from .database import get_analysis, initialize, insert_analysis, list_analyses, summary
+    from .model import MODEL_VERSION, analyse, ensure_model, load_bundle
+except ImportError:
+    from database import get_analysis, initialize, insert_analysis, list_analyses, summary
+    from model import MODEL_VERSION, analyse, ensure_model, load_bundle
 
 app = FastAPI(title="AI Image Quality Inspector", version="1.0.0")
 app.add_middleware(
